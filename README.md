@@ -31,3 +31,5 @@ Install:
   
 - Clock can imediately started via word 'StartClock'
 - time can be set via word now! from rtc.fs (jcw see there)
+
+(do not rebuild this clock, because of very old LED and TTL chips it takes around 5W. It is over complicated to program. Take a look at my Forth WS8212 Clock, much easier to build and programm.) 
