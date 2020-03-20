@@ -1,3 +1,5 @@
+( start button: ) here hex.
+
 PA0 constant BUTTON0
 PA1 constant BUTTON1
 PA2 constant BUTTON2
@@ -18,3 +20,4 @@ imode-float BUTTON2 io-mode!
   then ; 
 
 \ ['] pollkbd 100 3 call-every
+( start end: ) here hex.

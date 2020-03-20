@@ -1,3 +1,5 @@
+( start clockdht11: ) here hex.
+
 include ../MecrispForth_DHT11/dht11.fs
 
 0 variable temp
@@ -84,3 +86,5 @@ include ../MecrispForth_DHT11/dht11.fs
 	$48 dispbuffer 13 + c! \ H
     then
 ;
+
+( end clockdht11: ) here hex.

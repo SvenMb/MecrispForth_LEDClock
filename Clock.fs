@@ -1,16 +1,25 @@
 \ LEDClock in Forth with buffer
 \ Sven Muehlberg
 
+( start Clock: ) here hex.
+
 16 buffer: dispBuffer
 
 \ config area for modules, just comment out if you don"t have that hardware
+
 : mqtt ; \ defines mqtt output, comment out if not needed
 
+\ use DHT11 module
 include dht11.fs
 
+\ use buttons for some actions
 include button.fs
 
+\ use buzzer for sound alarm not implemented now
 include buzzer.fs
+
+\ time conversion - not optional
+include time.fs
 
 
 \ definition Ports 
@@ -25,89 +34,69 @@ PB6 constant A2 \ 5V
 PB7 constant WR \ 5V
 PB4 constant ClockLED \ 5V
 
-7200 VARIABLE TIMEZONE 
+7200 VARIABLE TIMEZONE \ 2h in front
 
 2019 VARIABLE YEAR
 05 VARIABLE MONTH
 20 VARIABLE DAY
+0 VARIABLE WDAY
 23 VARIABLE HOUR
 45 VARIABLE MINUTE
 50 VARIABLE SECOND
 
 0 VARIABLE DIMM
 
-CREATE MONTHLENGTHS
-31 , 28 , 31 , 30 , 31 , 30 , 31 , 31 , 30, 31 , 30 , 31
-,
-
-CREATE MONTHLENGTHSLEAP
-31 , 29 , 31 , 30 , 31 , 30 , 31 , 31 , 30, 31 , 30 , 31
-,
-
-0 VARIABLE MLENGTHS
-
-
 include asci_7segment.fs
 
+\ define days - german names :)
+: days s" SonntaMontagDienstMittwoDonnerFreitaSamsta" ;
 
+: day.
+    WDAY @ 6 *
+    days drop +
+    dispbuffer 8 +
+    6 move
+;
 
-: breaktime
-now
-timezone @ +
-60 /mod swap SECOND !
-60 /mod swap MINUTE !
-24 /mod swap HOUR !
-365 +
-1461 /mod 4 * swap 1095 /mod 3 * swap 365 /mod rot + rot + 1969 + dup YEAR !
-4 mod 0= if MONTHLENGTHSLEAP else MONTHLENGTHS then MLENGTHS !
-12 0 DO
- dup 
- MLENGTHS @ I CELLS + @ < if i 1+ MONTH ! leave then MLENGTHS @ I CELLS + @ -
-loop
-1+ DAY !
+: breaktime ( - - )
+    now timezone @ + dup
+    time HOUR ! MINUTE ! SECOND !
+    date DAY ! MONTH ! YEAR ! WDAY !
 
-dispBuffer 15 + c@
+    dispBuffer 15 + c@ \ visibility flags
 
-dup $08 and 0= if
-    ClockLED iox!
-then
+    dup $08 and 0= if 
+	ClockLED iox! \ blink
+    then
 
-dup $01 and 0= if
+    dup $01 and 0= if
     SECOND @ dispBuffer tuck c!
 	minute @ swap 1+ tuck c!
 	hour @ 5 * minute @ 12 / + dup 60 mod rot 1+ tuck c! 
 	swap 1+ 60 mod swap 1+ c!
-then
+    then
 
-dup $02 and 0= if
-    HOUR @ 10 /mod $30 + dispBuffer 4 + tuck c!
-    swap $30 + over 1+ c!
-    MINUTE @ 10 /mod $30 + rot 2+ tuck c!
+    dup $02 and 0= if
+	HOUR @ 10 /mod $30 + dispBuffer 4 + tuck c!
+	swap $30 + over 1+ c!
+	MINUTE @ 10 /mod $30 + rot 2+ tuck c!
 	swap $30 + swap 1+ c!
-then
+    then
 
-$04 and 0= if
+    $04 and 0= if
 	SECOND @ 3 / 4 mod case
-	0 of temp. endof
-	1 of humi. endof
-		DAY @ 10 /mod $30 + dispBuffer 8 + tuck c!
-		swap $B0 + over 1+ c!
-		MONTH @ 10 /mod $30 + rot 2+ tuck c!
-		swap $B0 + over 1+ c!
-		YEAR @ 100 mod 10 /mod $30 + rot 2+ tuck c!
-		swap $30 + swap 1+ c!
+	    0 of temp. endof
+	    1 of humi. endof
+	    2 of day.  endof
+	    DAY @ 10 /mod $30 + dispBuffer 8 + tuck c!
+	    swap $B0 + over 1+ c!
+	    MONTH @ 10 /mod $30 + rot 2+ tuck c!
+	    swap $B0 + over 1+ c!
+	    YEAR @ 100 mod 10 /mod $30 + rot 2+ tuck c!
+	    swap $30 + swap 1+ c!
 	endcase
-then
+    then
 ;
-
-: time.
-CR
-HOUR @ u.2 $3a emit MINUTE @ u.2 $3a emit SECOND @ u.2
-CR
-DAY @ u.2 $2e emit MONTH @ u.2  $2e emit YEAR @ .
-CR
-;
-
 
 : clrClock.
 
@@ -138,7 +127,7 @@ ClockLED ios!
 
 
 
-: display.
+: display. ( - - )
 dispBuffer 14 + c@ \ get actual position
 dup 12 u>= if drop 0 then \ set 0 if 12 or more
 
@@ -188,7 +177,7 @@ WR dup ioc! ios!
 
 $ff00 DP.BSRR ! \ all data high
 A0 ios!
-dispBuffer + 4 + c@ \ hole Inhalt aus ddisplay Puffer
+dispBuffer + 4 + c@ \ hole Inhalt aus display Puffer
 ascii7seg + $20 - c@ \ wandle ascii
 8 lshift DP.BRR !
 1 us
@@ -259,6 +248,7 @@ imode-float pc13 io-mode! \ LED pin imode-float, da sonst rtc beeinflusst
 depth 0= if CR ." Keeping time" else
   now!
 then
+CR
 
 dispBuffer 4 61 fill
 s" /[]\Hello." dispbuffer 4 + swap move
@@ -276,10 +266,7 @@ resume
 [then]
 
 1000 ms
-0 dispBuffer 15 + c!
-
-time.
-    
+0 dispBuffer 15 + c! 
 ;
 
 : suspend
@@ -298,6 +285,7 @@ clrClock.
 : dimm $3b emit CR dimm ." POWER2;false" CR $3b emit ;
 : resume $3b emit CR resume ." POWER2;true" CR $3b emit ;
 
+( end Clock: ) here hex.
 
 
 
