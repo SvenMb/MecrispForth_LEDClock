@@ -36,7 +36,7 @@ If clock works as expected you can put it to init for autostart. As you already 
 
 - activate autostart
   + compiletoflash
-  + cornerstone <<<Clock>>>
+  + cornerstone \<\<\<Clock\>\>\>
   + here hex. (note this address, in case something goes wrong you can erase flash from here and switch off autostart this way)
   + : init init StartClock ;
   + compiletoram
