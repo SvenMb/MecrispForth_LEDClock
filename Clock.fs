@@ -1,16 +1,29 @@
 \ LEDClock in Forth with buffer
 \ Sven Muehlberg
 
+16 buffer: dispBuffer
+
+\ config area for modules, just comment out if you don"t have that hardware
+: mqtt ; \ defines mqtt output, comment out if not needed
+
+include dht11.fs
+
+include button.fs
+
+include buzzer.fs
+
+
 \ definition Ports 
-PB0 constant DP \ PB8-PB15 5V
+PB0 constant DP \ PB8-PB15
+\ need config for which pins the data port is starting
+\ 8 constant DP.pin \ not in use now
 DP io-base GPIO.BSRR + constant DP.BSRR
 DP io-base GPIO.BRR + constant DP.BRR
-PA15 constant A0 \ 3.3V 
+PA15 constant A0 \ 5V 
 PA8 constant A1 \ 5V
 PB6 constant A2 \ 5V
 PB7 constant WR \ 5V
 PB4 constant ClockLED \ 5V
-PB1 constant BUZ \ 5V
 
 7200 VARIABLE TIMEZONE 
 
@@ -36,11 +49,7 @@ CREATE MONTHLENGTHSLEAP
 
 include asci_7segment.fs
 
-16 buffer: dispBuffer
 
-include dht11.fs
-
-include button.fs
 
 : breaktime
 now
@@ -227,29 +236,20 @@ DIMM @ 0<> if
 then
 ;
 
-\ SOUND!
-: tone buz pwm-init 500 buz pwm ms 0 buz pwm 20 ms ;
-
-: m1 250 440 tone 125 196 tone 125 196 tone 250 220 tone
-250 196 tone 250 ms  250 247 tone 250 440 tone ;
-: m2 250 523 tone 250 493 tone 250 392 tone 125 523 tone
-125 493 tone 250 329 tone 500 ms 250 523 tone 250 261 tone
-250 392 tone 125 440 tone 125 523 tone ;
-: m3 250 294 tone  250 440 tone 125 349 tone 250 261 tone 250 294
-tone 250 440 tone 250 294 tone 250 261 tone 250 349 tone 250 294
-tone 250 440 tone 250 261 tone 250 294 tone 250 440 tone 125 349 tone ;
-
-
-
-: resume 0 dispbuffer 15 + c! 
-0 DIMM !
-timed-init
-clrClock.
-['] breaktime 1000 0 call-every
-['] display. 1 1 call-every
-['] readDHT11 60000 2 call-every
-['] pollkbd 100 3 call-every
-readDHT11
+: resume
+    0 dispbuffer 15 + c! 
+    0 DIMM !
+    timed-init
+    clrClock.
+    ['] breaktime 1000 0 call-every
+    ['] display. 1 1 call-every
+    [ifdef] readDHT11
+	readDHT11
+	['] readDHT11 60000 2 call-every
+    [then]
+    [ifdef] pollkbd
+	['] pollkbd 100 3 call-every
+    [then]
 ;
 
 : StartClock
@@ -265,22 +265,21 @@ s" /[]\Hello." dispbuffer 4 + swap move
 0 dispBuffer 14 + c!
 4 dispBuffer 15 + c!
 
-dht11data 6 0 fill
-
 \ setup
 
 ClockLED ioc!
 
 resume
 
-\ m1 currently buggy
+[ifdef] m1
+    m1 \ starting sound, if buzzer is loaded
+[then]
 
 1000 ms
 0 dispBuffer 15 + c!
 
 time.
-
-readDHT11
+    
 ;
 
 : suspend
