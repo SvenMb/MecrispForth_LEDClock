@@ -4,6 +4,8 @@
 \ calculates time from timestamp (seconds since 1.1.1970)
 \ maybe it would be usefull to switch to leapoch timestamp?
 
+( start time: ) here hex.
+
 : time ( timestamp - hour minutes seconds )
     86400 mod \ throw away the date part
     \ take care of dates before 1970
@@ -82,3 +84,6 @@ CREATE MONTHLEN
     0 <# # # # # #> type
     drop
 ;
+
+( end time: ) here hex.
+
