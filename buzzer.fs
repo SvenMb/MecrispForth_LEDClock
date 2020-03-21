@@ -1,6 +1,7 @@
 \ needs pwm.fs from jcw
 \ don't forget to start the systicks, else it will hang 
 
+( start buzzer: ) here hex.
 PB1 constant BUZ \ Port for buzzer, must be a pwm port
 
 \ SOUND! this is just a simple square wave 
@@ -27,4 +28,5 @@ PB1 constant BUZ \ Port for buzzer, must be a pwm port
     250 294 tone 250 440 tone 125 349 tone
 ;
 
+( end buzzer: ) here hex.
 
