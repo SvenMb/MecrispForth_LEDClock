@@ -96,6 +96,18 @@ include asci_7segment.fs
 	    swap $30 + swap 1+ c!
 	endcase
     then
+
+    [ifdef] tone
+	dispbuffer 15 + @ $10 and DIMMstat @ + 0= if
+	    minute @ 0= second @ 0= and if
+		360 440 tone
+	    then
+	    minute @ 59 - 0=
+	    second @ 57 - 0< not and if
+		80 1760 tone
+	    then
+	then
+    [then]
 ;
 
 : clrClock.
@@ -305,6 +317,29 @@ resume
 1000 ms
 0 dispBuffer 15 + c! 
 ;
+
+[ifdef] m1
+    : alarm
+	4 dispbuffer 15 + c!
+	s" Alarm!" dispbuffer 8 + swap move
+	m1
+	0 dispbuffer 15 + c!
+    ;
+
+    : alarm1
+	4 dispbuffer 15 + c!
+	s" ALARM!" dispbuffer 8 + swap move
+	m2
+	0 dispbuffer 15 + c!
+    ;
+
+    : alarm2
+	4 dispbuffer 15 + c!
+	s" Panik!" dispbuffer 8 + swap move
+	m3
+	0 dispbuffer 15 + c!
+    ;
+[then]
 
 ( end Clock: ) here dup hex.
 ( size: ) swap - hex.
