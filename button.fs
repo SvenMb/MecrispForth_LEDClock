@@ -1,23 +1,57 @@
 ( start button: ) here hex.
 
-PA0 constant BUTTON0
-PA1 constant BUTTON1
-PA2 constant BUTTON2
+\ config area for button ports
+4 constant BT# \ how many buttons
 
-imode-float BUTTON0 io-mode!
-imode-float BUTTON1 io-mode!
-imode-float BUTTON2 io-mode!
+\ which ports
+create BTp
+PA0 ,
+PA1 ,
+PA2 ,
+PA3
+,
 
-0 variable KBDWAIT
+\ vectorlist for button words 
+BT# cells buffer: BTv
 
-: pollkbd
-  kbdwait @ 0= if
-  	  BUTTON0 io@ if ." POWER;true" CR 5 kbdwait ! then
-	  BUTTON1 io@ if ." POWER1;true" CR 5 kbdwait ! then
-	  BUTTON2 io@ if ." POWER2;true" CR 5 kbdwait ! then
-  else
-	  kbdwait dup @ 1- swap !
-  then ; 
+\ default word for button
+: BThello
+    [ifdef] mqtt
+	." POWER" dup 0<> if 0 <# #s #> type then ." ;true" CR	
+    [else]
+	." Hey! #" . CR
+    [then]
+;
 
-\ ['] pollkbd 100 3 call-every
-( start end: ) here hex.
+0 variable BTwait
+
+: BTpoll
+    BTwait @ 0<> if
+	BTwait dup @ abs 1- swap !
+	exit
+    then
+    BT# 0 do
+	BTp I cells + @ io@ if
+	    I BTv I cells + @ execute \ start words with button# on stack
+	    \ I . CR \debug
+	    5 BTwait !
+	    leave
+	then
+    loop
+;
+
+: BTinit
+    BT# 0 do
+	imode-float BTp I cells + @ io-mode! \ maybe imode-float not always good?
+	['] BThello BTv I cells + ! \ initialising vector with default
+    loop
+
+;
+
+\ check every 100ms and use timed 3
+\ BTinit
+\ ['] BTpoll 100 3 call-every \ modify this to your needs
+
+
+
+( end button: ) here hex.

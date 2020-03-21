@@ -1,7 +1,7 @@
 \ LEDClock in Forth with buffer
 \ Sven Muehlberg
 
-( start Clock: ) here hex.
+( start Clock: ) here dup hex.
 
 16 buffer: dispBuffer
 
@@ -44,7 +44,7 @@ PB4 constant ClockLED \ 5V
 45 VARIABLE MINUTE
 50 VARIABLE SECOND
 
-0 VARIABLE DIMM
+0 VARIABLE DIMMstat
 
 include asci_7segment.fs
 
@@ -211,7 +211,7 @@ WR dup ioc! ios!
 \ increment displaypos 
 1+ dispBuffer 14 + c!
 
-DIMM @ 0<> if
+DIMMstat @ 0<> if
   $ff00 DP.BSRR ! \ all data high
   wr ios!
   A0 ios! A1 ioc! A2 ioc! \ 001 Pixels
@@ -227,7 +227,7 @@ then
 
 : resume
     0 dispbuffer 15 + c! 
-    0 DIMM !
+    0 DIMMstat !
     timed-init
     clrClock.
     ['] breaktime 1000 0 call-every
@@ -236,10 +236,42 @@ then
 	readDHT11
 	['] readDHT11 60000 2 call-every
     [then]
-    [ifdef] pollkbd
-	['] pollkbd 100 3 call-every
+    [ifdef] BTinit
+	['] BTpoll 100 3 call-every
     [then]
 ;
+
+: dimm
+  1 DIMMstat !
+  ['] breaktime 1000 0 call-every
+  ['] display. 5 1 call-every
+;
+
+: suspend
+$0f dispbuffer 15 + c!
+0 call-never
+1 call-never
+clrClock.
+;
+
+[ifdef] mqtt
+    : dimm dimm ." POWER2;false" CR ;
+    : resume resume ." POWER2;true" CR ;
+[then]
+
+[ifdef] BTinit
+    \ should be called via button press
+    : dimmer
+	drop \ throw away the button number
+
+	DIMMstat @ 0= if \ check if bright
+	    dimm
+	else
+	    resume
+	then
+    ;
+[then]
+
 
 : StartClock
 CR ." Starting Clock v2.0"
@@ -259,6 +291,11 @@ s" /[]\Hello." dispbuffer 4 + swap move
 
 ClockLED ioc!
 
+[ifdef] BTinit
+    BTinit
+    ['] dimmer BTv 2 cells + ! \ dimmer on button 2
+[then]
+    
 resume
 
 [ifdef] m1
@@ -269,23 +306,8 @@ resume
 0 dispBuffer 15 + c! 
 ;
 
-: suspend
-$0f dispbuffer 15 + c!
-0 call-never
-1 call-never
-clrClock.
-;
-
-: dimm
-  1 DIMM !
-  ['] breaktime 1000 0 call-every
-  ['] display. 5 1 call-every
-;
-
-: dimm $3b emit CR dimm ." POWER2;false" CR $3b emit ;
-: resume $3b emit CR resume ." POWER2;true" CR $3b emit ;
-
-( end Clock: ) here hex.
+( end Clock: ) here dup hex.
+( size: ) swap - hex.
 
 
 
