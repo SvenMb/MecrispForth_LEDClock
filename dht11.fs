@@ -45,7 +45,7 @@ include ../MecrispForth_DHT11/dht11.fs
     0<
     if 
 	s" DHT E" dispbuffer 8 + swap move
-	humi @ .digit dispbuffer 13 + c! 
+	humi @ abs .digit dispbuffer 13 + c! 
     else
 	
 	temp @
@@ -72,7 +72,7 @@ include ../MecrispForth_DHT11/dht11.fs
     dup 0<
     if 
 	s" DHT E" dispbuffer 8 + swap move
-	.digit dispbuffer 13 + c! 
+	abs .digit dispbuffer 13 + c! 
     else
 	
 	$20 dispbuffer 8 + c! \ leer
