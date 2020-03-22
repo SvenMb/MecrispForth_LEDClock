@@ -16,7 +16,11 @@ include dht11.fs
 include button.fs
 
 \ use buzzer for sound alarm not implemented now
-include buzzer.fs
+include ../MecrispForth_buzzer/buzzer.fs
+include ../MecrispForth_buzzer/notes.fs
+include ../MecrispForth_buzzer/odeandiefreude.fs
+include ../MecrispForth_buzzer/impmarch.fs
+
 
 \ time conversion - not optional
 include time.fs
@@ -240,12 +244,10 @@ then
 : resume
     0 dispbuffer 15 + c! 
     0 DIMMstat !
-    timed-init
     clrClock.
     ['] breaktime 1000 0 call-every
     ['] display. 1 1 call-every
     [ifdef] readDHT11
-	readDHT11
 	['] readDHT11 60000 2 call-every
     [then]
     [ifdef] BTinit
@@ -303,15 +305,22 @@ s" /[]\Hello." dispbuffer 4 + swap move
 
 ClockLED ioc!
 
+
+timed-init
+
 [ifdef] BTinit
     BTinit
     ['] dimmer BTv 2 cells + ! \ dimmer on button 2
 [then]
     
 resume
+[ifdef] readDHT11
+    readDHT11
+[then]
+
 
 [ifdef] m1
-    m1 \ starting sound, if buzzer is loaded
+    m1 play \ starting sound, if buzzer is loaded
 [then]
 
 1000 ms
@@ -322,21 +331,31 @@ resume
     : alarm
 	4 dispbuffer 15 + c!
 	s" Alarm!" dispbuffer 8 + swap move
-	m1
+	m1 play
 	0 dispbuffer 15 + c!
     ;
-
+[then]
+[ifdef] m2
     : alarm1
 	4 dispbuffer 15 + c!
 	s" ALARM!" dispbuffer 8 + swap move
-	m2
+	m2 play
 	0 dispbuffer 15 + c!
     ;
-
-    : alarm2
+[then]
+[ifdef] impmarch
+    : panik
 	4 dispbuffer 15 + c!
 	s" Panik!" dispbuffer 8 + swap move
-	m3
+	impmarch play
+	0 dispbuffer 15 + c!
+    ;
+[then]
+[ifdef] ode
+    : freude
+	4 dispbuffer 15 + c!
+	s" Freude" dispbuffer 8 + swap move
+	ode play
 	0 dispbuffer 15 + c!
     ;
 [then]
