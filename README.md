@@ -1,5 +1,6 @@
 # MecrispForth_LEDClock
 Clock based on multiplexed Leds, also a dht11 sensor and buttons. 
+How it looks: https://youtu.be/bIr0jlOod5I
 
 - hardware will be documented sooon
 
