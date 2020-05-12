@@ -26,6 +26,8 @@ include ../MecrispForth_buzzer/impmarch.fs
 \ time conversion - not optional
 include time.fs
 
+\ definition NVIC
+$E000E100 constant NVIC_ISER0
 
 \ definition Ports 
 PB0 constant DP \ PB8-PB15
@@ -50,6 +52,7 @@ PB4 constant ClockLED \ 5V
 50 VARIABLE SECOND
 
 0 VARIABLE DIMMstat
+0 VARIABLE BEEP
 
 include asci_7segment.fs
 
@@ -102,14 +105,17 @@ include asci_7segment.fs
 	endcase
     then
 
+    \ moved to display. since using rtc irq for seconds conflicts with timer irq
     [ifdef] tone
-	dispbuffer 15 + @ $10 and DIMMstat @ + 0= if
+	dispbuffer 15 + @ $10 and 0= if
 	    minute @ 0= second @ 0= and if
-		360 440 tone
+		\ 360 440 tone
+		1 beep !
 	    then
 	    minute @ 59 - 0=
 	    second @ 57 - 0< not and if
-		80 1760 tone
+		\ 80 1760 tone
+		2 beep !
 	    then
 	then
     [then]
@@ -228,6 +234,7 @@ WR dup ioc! ios!
 \ increment displaypos 
 1+ dispBuffer 14 + c!
 
+\ darken if dimmstat
 DIMMstat @ 0<> if
   $ff00 DP.BSRR ! \ all data high
   wr ios!
@@ -238,15 +245,50 @@ DIMMstat @ 0<> if
   WR dup ioc! ios!
   A1 ioc! A2 ios!
   WR dup ioc! ios!
-  ClockLED ios!
+    ClockLED ios!
+else
+    \ beep only if not dimmstat
+    beep @
+    case
+	1 of
+	    360 440 tone
+	    0 beep !
+	endof
+	2 of
+	    80 1760 tone
+	    0 beep !
+	endof
+    endcase
 then
+
 ;
+
+
+: rtc_isr
+    1 rtc-crl bit@ not if \ check if new second
+	exit
+    then
+    1 rtc-crl bic! \ reset second flag
+
+    breaktime
+;
+
+: rtc_isr_init
+    rtc-init
+    500 ms
+    ['] rtc_isr irq-rtc ! \ write my isr to irq vector tab
+    3 bit nvic_iser0 bis! \ enable irq vector
+    500 ms
+    0 bit rtc bis!        \ enable second irq in rtc-crh
+;
+
+
 
 : resume
     0 dispbuffer 15 + c! 
     0 DIMMstat !
     clrClock.
-    ['] breaktime 1000 0 call-every
+    \ ['] breaktime 1000 0 call-every
     ['] display. 1 1 call-every
     [ifdef] readDHT11
 	['] readDHT11 60000 2 call-every
@@ -257,16 +299,16 @@ then
 ;
 
 : dimm
-  1 DIMMstat !
-  ['] breaktime 1000 0 call-every
-  ['] display. 5 1 call-every
+    1 DIMMstat !
+    \ ['] breaktime 1000 0 call-every
+    ['] display. 5 1 call-every
 ;
 
 : suspend
-$0f dispbuffer 15 + c!
-0 call-never
-1 call-never
-clrClock.
+    $0f dispbuffer 15 + c!
+    \ 0 call-never
+    1 call-never
+    clrClock.
 ;
 
 \ [ifdef] mqtt
@@ -289,43 +331,43 @@ clrClock.
 
 
 : StartClock
-CR ." Starting Clock v2.0"
-rtc-init
-imode-float pc13 io-mode! \ LED pin imode-float, da sonst rtc beeinflusst
-depth 0= if CR ." Keeping time" else
-  now!
-then
-CR
+    CR ." Starting Clock v2.0"
+    \ rtc-init
+    rtc_isr_init \ rtc-init and second irq
+    imode-float pc13 io-mode! \ LED pin imode-float, da sonst rtc beeinflusst
+    depth 0= if CR ." Keeping time" else
+	now!
+    then
+    CR
 
-dispBuffer 4 61 fill
-s" /[]\Hello." dispbuffer 4 + swap move
-0 dispBuffer 14 + c!
-4 dispBuffer 15 + c!
+    dispBuffer 4 61 fill
+    s" /[]\Hello." dispbuffer 4 + swap move
+    0 dispBuffer 14 + c!
+    4 dispBuffer 15 + c!
 
-\ setup
+    \ setup
 
-ClockLED ioc!
-
-
-timed-init
-
-[ifdef] BTinit
-    BTinit
-\    ['] dimmer BTv 2 cells + ! \ dimmer on button 2
-[then]
-    
-resume
-[ifdef] readDHT11
-    readDHT11
-[then]
+    ClockLED ioc!
 
 
-[ifdef] m1
-    m1 play \ starting sound, if buzzer is loaded
-[then]
+    timed-init
 
-1000 ms
-0 dispBuffer 15 + c! 
+    [ifdef] BTinit
+	BTinit
+	\    ['] dimmer BTv 2 cells + ! \ dimmer on button 2
+    [then]
+
+    resume
+    [ifdef] readDHT11
+	readDHT11
+    [then]
+
+    [ifdef] m1
+	m1 play \ starting sound, if buzzer is loaded
+    [then]
+
+    1000 ms
+    0 dispBuffer 15 + c!
 ;
 
 [ifdef] m1
