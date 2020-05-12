@@ -5,7 +5,7 @@
 
 16 buffer: dispBuffer
 
-\ config area for modules, just comment out if you don"t have that hardware
+\ config area for modules, just comment out if you don't have that hardware
 
 : mqtt ; \ defines mqtt output, comment out if not needed
 
@@ -15,10 +15,11 @@ include dht11.fs
 \ use buttons for some actions
 include button.fs
 
-\ use buzzer for sound alarm not implemented now
+\ use buzzer for sound, alarm not implemented now
 include ../MecrispForth_buzzer/buzzer.fs
 include ../MecrispForth_buzzer/notes.fs
 include ../MecrispForth_buzzer/odeandiefreude.fs
+include ../MecrispForth_buzzer/forelise.fs
 include ../MecrispForth_buzzer/impmarch.fs
 
 
@@ -268,10 +269,10 @@ $0f dispbuffer 15 + c!
 clrClock.
 ;
 
-[ifdef] mqtt
-    : dimm dimm ." POWER2;false" CR ;
-    : resume resume ." POWER2;true" CR ;
-[then]
+\ [ifdef] mqtt
+\    : dimm dimm ." POWER2;false" CR ;
+\    : resume resume ." POWER2;true" CR ;
+\ [then]
 
 [ifdef] BTinit
     \ should be called via button press
@@ -310,7 +311,7 @@ timed-init
 
 [ifdef] BTinit
     BTinit
-    ['] dimmer BTv 2 cells + ! \ dimmer on button 2
+\    ['] dimmer BTv 2 cells + ! \ dimmer on button 2
 [then]
     
 resume
@@ -356,6 +357,14 @@ resume
 	4 dispbuffer 15 + c!
 	s" Freude" dispbuffer 8 + swap move
 	ode play
+	0 dispbuffer 15 + c!
+    ;
+[then]
+[ifdef] ForElise
+    : elise
+	4 dispbuffer 15 + c!
+	s" Elise." dispbuffer 8 + swap move
+	ForElise play
 	0 dispbuffer 15 + c!
     ;
 [then]
