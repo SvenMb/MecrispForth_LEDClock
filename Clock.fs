@@ -329,6 +329,19 @@ then
     ;
 [then]
 
+[ifdef] mqtt
+    : bueropower drop ." >mqtt:cmnd/Buero/Power,toggle" CR ;
+    
+    : shutter
+	3 swap - \ reverse buttons 2-4
+	50 *
+	." >mqtt:cmnd/Buero_Rollo/ShutterPosition," 0 <# #s #> type CR
+    ;
+    
+[then]
+
+
+
 
 : StartClock
     CR ." Starting Clock v2.0"
@@ -355,6 +368,14 @@ then
     [ifdef] BTinit
 	BTinit
 	\    ['] dimmer BTv 2 cells + ! \ dimmer on button 2
+	[ifdef] mqtt
+	    
+	    ['] bueropower BTv 0 cells + ! \ PC on/off
+	    4 1 do \ starting with second button shutter 3 buttons for shutter
+		['] shutter BTv I cells + ! \ initialising vector with default
+	    loop
+
+	[then]
     [then]
 
     resume
