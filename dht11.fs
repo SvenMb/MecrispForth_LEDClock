@@ -23,7 +23,7 @@ include ../MecrispForth_DHT11/dht11.fs
     \ ab hier ausgabe fuer mqtt
     \ SENSOR = {"Time":"2020-02-22T11:20:23","DHT11":{"Temperature":18.2,"Humidity":42.0},"TempUnit":"C"}
     [ifdef] mqtt
-	." >mqtt:tele/LEDClock/SENSOR;{"
+	." >mqtt:tele/LEDClock/SENSOR,{"
 	$22 emit ." DHT11" $22 emit $3a emit $7b emit
 	$22 emit ." Temperature" $22 emit $3a emit
 	
